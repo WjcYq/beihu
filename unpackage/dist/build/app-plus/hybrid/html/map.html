@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		html,
+		body {
+			margin: 0px;
+			height: 100%;
+			width: 100%
+		}
+
+		.container {
+			width: 100%;
+			height: 100%;
+		}
+
+		.contentText {
+			width: 267px;
+			height: 100%;
+			display: flex;
+			flex-flow: column;
+			background-color: rgba(8, 48, 74, 0.898039215686275);
+			border-radius: 10px;
+			font-size: 15px;
+			color: #FFFFFF;
+			padding: 10px 20px;
+		}
+	</style>
+	<link rel="stylesheet" href="./css/maptalks.css">
+	<script type="text/javascript" src="//js.cdn.aliyun.dcloud.net.cn/dev/uni-app/uni.webview.0.1.52.js"></script>
+	<script type="text/javascript" src="./js/maptalks.min.js"></script>
+	<body>
+		<div id="map" class="container"></div>
+
+		<script>
+			function getQuery(name) {
+				let reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+				let r = window.location.search.substr(1).match(reg);
+				if (r != null) {
+					return decodeURIComponent(r[2]);
+				}
+				return null;
+			}
+			let center = JSON.parse(getQuery('center'));
+			let warningData = JSON.parse(getQuery('warningData'));
+			let RTAShow = +getQuery('RTAShow') ? true : false;
+			if (center.length) {
+				var map = new maptalks.Map('map', {
+					center: center,
+					zoom: 14,
+					minZoom: 1,
+					maxZoom: 18,
+					spatialReference: {
+						projection: 'EPSG:4326'
+					},
+					baseLayer: new maptalks.TileLayer('base', {
+						tileSystem: [1, -1, -180, 90],
+						urlTemplate: 'http://t{s}.tianditu.com/DataServer?T=vec_c&x={x}&y={y}&l={z}&tk=de0dc270a51aaca3dd4e64d4f8c81ff6',
+						subdomains: ['1', '2', '3', '4', '5'],
+						attribution: '&copy; <a target="_blank" href="http://www.tianditu.cn">Tianditu</a>'
+					})
+				});
+
+				let RTAlayer, infoWindowList = [];
+				if (RTAShow) {
+					if (RTAlayer) {
+						RTAlayer.show();
+						infoWindowList.forEach(infoWindow => {
+							infoWindow.show();
+						})
+					} else {
+						RTAlayer = new maptalks.VectorLayer('vector').addTo(map);
+						let infoWindowList1 = [];
+						warningData.forEach(item => {
+							if (item.x && item.y && map) {
+								let center = [item.x, item.y];
+								let imgMarker = new maptalks.Marker(
+									center, {
+										'symbol': {
+											'markerFile': '../../static/common/img/u79.png',
+											'markerWidth': 36,
+											'markerHeight': 36,
+											'markerDx': 0,
+											'markerDy': 0,
+											'markerOpacity': 1
+										}
+									}
+								).addTo(RTAlayer);
+								let options = {
+									'single': false,
+									'custom': true,
+									'width': 267,
+									'dx': -50,
+									'dy': -50,
+									'content': '<div class="contentText">' +
+										'<div>报警人：' + item.aPersonName + '</div>' +
+										'<div>报警时间：' + item.aDate + '</div>' +
+										'<div>报警地址：' + item.aAddress + '</div>' +
+										'<div>报警内容：' + item.remark + '</div>' +
+										'</div>'
+								};
+
+								let infoWindow = new maptalks.ui.InfoWindow(options);
+								infoWindowList1.push(infoWindow);
+								infoWindow.addTo(map).show({
+									x: item.x,
+									y: item.y
+								});
+							}
+						})
+						infoWindowList = infoWindowList1;
+					}
+				}
+				if (!RTAShow) {
+					if (RTAlayer) {
+						RTAlayer.hide();
+						infoWindowList.forEach(infoWindow => {
+							infoWindow.hide();
+						})
+					}
+				}
+			}
+		</script>
+	</body>
+</html>
